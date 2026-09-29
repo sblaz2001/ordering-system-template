@@ -30,7 +30,7 @@ export const signInAnonymously = async () => ({});
 document.addEventListener("DOMContentLoaded", () => {
   const b = document.createElement("button");
   b.textContent = "Demo mode · reset";
-  b.style.cssText = "position:fixed;left:8px;bottom:8px;z-index:200;font:11px system-ui;padding:5px 9px;border-radius:999px;border:1px solid #DDE1E6;background:#fff;color:#667085;opacity:.85";
+  b.style.cssText = "position:fixed;left:8px;bottom:calc(8px + env(safe-area-inset-bottom));z-index:200;font:11px system-ui;padding:5px 9px;border-radius:999px;border:1px solid #DDE1E6;background:#fff;color:#667085;opacity:.85";
   b.onclick = () => { if(confirm("Clear all demo orders and reset the menu?")){ localStorage.removeItem(KEY); localStorage.clear(); location.reload(); } };
   document.body.appendChild(b);
 });
