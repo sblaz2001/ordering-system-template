@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Bar Ordering</title>
+<script src="config.js"></script>
+<style>
+  :root{
+    /* Neutral light theme. Only --accent comes from config.js (theme.accent);
+       everything else is a plain neutral so the template suits any venue. */
+    --bg: #F5F6F8;
+    --surface: #FFFFFF;
+    --line: #DDE1E6;
+    --text: #16191D;
+    --on-accent: #FFFFFF;
+    --muted: #667085;
+    --accent: #1F4FD8;
+    --accent-dark: #1A3FAE;
+    --accent-soft: rgba(31,79,216,0.10);
+    --alert: #D92D20;
+    --alert-soft: rgba(217,45,32,0.10);
+    --sale: #B54708;
+    --sale-soft: #FFF6E5;
+    --sale-line: #F1C27D;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --radius: 12px;
+  }
+
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  button{ font-family: inherit; cursor: pointer; }
+  input, textarea{ font-family: inherit; }
+
+  .display{ font-family:var(--font); text-transform: uppercase; letter-spacing: 0.02em; }
+  .mono{ font-family:var(--font-mono); }
+
+  #app{ max-width: 480px; margin: 0 auto; min-height: 100vh; padding: 20px 16px 40px; position: relative; }
+  #app.staff-wide{ max-width: 920px; }
+
+  .brand{ text-align:center; margin: 4px 0 22px; }
+  .brand .brand-logo{ width: 88px; height: 88px; display:block; margin: 0 auto; }
+  .brand .mark{ font-family:var(--font); font-weight:800; font-size: 15px; letter-spacing: 0.28em; color: var(--accent); }
+  .brand .sub{ font-size: 11px; color: var(--muted); letter-spacing: 0.1em; margin-top: 8px; text-transform: uppercase; }
+
+  .btn-primary{
+    display:block; width:100%; padding: 15px 20px; border:none; border-radius: 999px;
+    background: var(--accent); color: var(--on-accent); font-weight:700; font-size: 15px;
+    letter-spacing: 0.03em; text-transform: uppercase; font-family:var(--font);
+  }
+  .btn-primary:disabled{ background: #C4CAD3; color: var(--muted); }
+  .btn-secondary{
+    display:block; width:100%; padding: 13px 20px; border: 1.5px solid var(--muted); border-radius: 999px;
+    background: transparent; color: var(--text); font-weight:600; font-size: 14px;
+  }
+  /* Same shape as .btn-secondary but readable on the ticket's light
+     paper background (dark ink text/border instead of light offwhite). */
+  .btn-ticket-secondary{
+    display:block; width:100%; padding: 13px 20px; border: 1.5px solid var(--text); border-radius: 999px;
+    background: transparent; color: var(--text); font-weight:600; font-size: 14px;
+  }
+
+  /* ---------- Menu screen ---------- */
+  .table-pill{
+    display:inline-flex; align-items:center; gap:8px; padding: 6px 14px; border-radius: 999px;
+    background: var(--surface); border: 1px solid var(--line); font-size: 13px; color: var(--muted); margin-bottom: 18px;
+  }
+  .table-pill b{ color: var(--accent); font-family:var(--font-mono); }
+  .table-pill .change{ margin-left: 6px; color: var(--text); text-decoration: underline; background:none; border:none; font-size:12px; padding:0; }
+  .my-orders-banner{ display:flex; width:100%; justify-content:space-between; box-sizing:border-box; }
+  .my-orders-banner button{
+    background: var(--accent); color: var(--on-accent); border:none; border-radius:999px; font-size:12px;
+    font-weight:700; padding: 4px 12px; cursor:pointer; touch-action:manipulation;
+  }
+
+  .cat-tabs{ display:flex; gap:8px; overflow-x:auto; padding-bottom: 6px; margin-bottom: 14px; scrollbar-width:none; cursor:grab; user-select:none; }
+  .cat-tabs::-webkit-scrollbar{ display:none; }
+  .cat-tab{
+    flex: 0 0 auto; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface);
+    color: var(--muted); font-size: 12.5px; font-weight:600; letter-spacing:0.03em; text-transform:uppercase; white-space:nowrap;
+  }
+  .cat-tab.active{ background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+
+  .cat-heading{ font-family:var(--font); font-size: 20px; margin: 18px 0 8px; color: var(--text); letter-spacing:0.02em; }
+
+  /* ---------- Table select ---------- */
+  .table-select-intro{ text-align:center; color: var(--muted); font-size:13.5px; margin: 0 0 22px; }
+  .table-cat-heading{ font-family:var(--font); font-size: 17px; margin: 22px 0 10px; color: var(--text); letter-spacing:0.02em; }
+  .table-cat-heading:first-of-type{ margin-top:0; }
+  .table-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+  .table-btn{
+    padding: 16px 10px; border-radius:10px; border:1px solid var(--line); background: var(--bg);
+    color: var(--text); font-size:14px; font-weight:600; cursor:pointer; text-align:center; touch-action:manipulation;
+  }
+  .table-btn:active{ background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+
+  .item-row{
+    display:flex; align-items:center; justify-content: space-between; gap: 10px;
+    padding: 12px 2px; border-bottom: 1px solid var(--line);
+  }
+  .item-row.unavailable{ opacity: 0.4; }
+  .item-info .name{ font-size: 15px; font-weight:600; }
+  .item-info .price{ font-size: 13px; color: var(--muted); margin-top:2px; }
+  .price-row{ display:flex; align-items:center; gap:7px; margin-top:2px; }
+  .price-row .price-crossed{ font-size:12px; color: var(--muted); text-decoration:line-through; margin-top:0; }
+  .price-crossed{ text-decoration:line-through; color: var(--muted); }
+  .price-row .price-sale{ font-size:13px; font-weight:700; color: var(--sale); margin-top:0; }
+  .sale-tag{ font-size:9.5px; font-weight:700; color: var(--sale); border:1px solid var(--sale-line); border-radius:4px; padding:1px 4px; text-transform:uppercase; letter-spacing:0.03em; }
+  .promo-hint{ font-size:11px; color: var(--sale); margin-top:2px; }
+  .promo-banner{ background:var(--sale-soft); border:1px solid var(--sale-line); border-radius:10px; padding:10px 12px; margin-bottom:14px; }
+  .promo-banner .pname{ font-size:13px; font-weight:700; color: var(--sale); }
+  .promo-banner .pname .plive{ text-transform:uppercase; letter-spacing:0.03em; font-size:11px; }
+  .promo-banner .pdesc{ font-size:11.5px; color: var(--line); margin-top:2px; }
+  .promo-banner + .promo-banner{ margin-top:-6px; }
+  .promo-banner.upcoming{ background: var(--surface); border:1px solid var(--line); }
+  .promo-banner.upcoming .pname{ color: var(--text); }
+  .promo-banner.upcoming .pdesc{ color: var(--muted); }
+  .item-info .tag86{ font-size: 11px; color: var(--alert); text-transform:uppercase; letter-spacing:0.05em; font-weight:700; }
+
+  .qty-control{ display:flex; align-items:center; gap: 10px; }
+  .qty-control button{
+    width:30px; height:30px; border-radius:50%; border:1px solid var(--muted); background:transparent; color: var(--text); font-size:16px;
+  }
+  .qty-control .n{ min-width: 18px; text-align:center; font-family:var(--font-mono); font-weight:600; }
+
+  .notes-block{ margin-top: 20px; }
+  .notes-block label{ font-size: 12.5px; color: var(--muted); text-transform:uppercase; letter-spacing:0.05em; display:block; margin-bottom:6px; }
+  .notes-block textarea{
+    width:100%; min-height: 64px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface);
+    color: var(--text); padding: 10px 12px; font-size: 16px; resize: vertical;
+  }
+
+  .cart-bar{
+    position: sticky; bottom: 12px; margin-top: 22px; background: var(--surface); color: var(--text);
+    border-radius: 999px; padding: 10px 10px 10px 20px; display:flex; align-items:center; justify-content:space-between;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .cart-bar .info{
+    font-size: 13px; font-weight:600; background:none; border:none; padding:0; margin:0;
+    color: var(--text); font-family: inherit; cursor:pointer; text-align:left;
+  }
+  .cart-bar .info:disabled{ background:none; color: var(--muted); cursor:default; }
+  .cart-bar .info .count{ color: var(--alert); }
+  .cart-bar button{
+    border:none; background: var(--text); color: var(--surface); padding: 10px 18px; border-radius: 999px;
+    font-family:var(--font); font-weight:700; letter-spacing:0.03em; text-transform: uppercase; font-size:13px;
+  }
+  .cart-bar button:disabled{ background:#98A2B3; }
+
+  /* ---------- Itemized cart drawer ---------- */
+  .cart-backdrop{ position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 79; }
+  .cart-drawer{
+    position: fixed; left: 50%; bottom: 0; transform: translateX(-50%); width: 100%; max-width: 480px;
+    background: var(--surface); color: var(--text); border-radius: 18px 18px 0 0; padding: 18px 18px calc(18px + env(safe-area-inset-bottom));
+    z-index: 80; max-height: 72vh; display:flex; flex-direction:column; box-shadow: 0 -10px 30px rgba(0,0,0,0.4);
+  }
+  .cart-drawer-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom: 12px; flex-shrink:0; }
+  .cart-drawer-title{ font-family:var(--font); font-weight:800; font-size: 20px; }
+  .cart-drawer-close{ background:none; border:none; color: var(--text); font-size: 18px; padding: 4px 8px; }
+  .cart-drawer-list{ overflow-y:auto; flex: 1 1 auto; }
+  .cart-drawer-line{
+    display:flex; align-items:center; gap:10px; padding: 10px 0; border-bottom: 1px solid var(--line);
+  }
+  .cart-drawer-line:last-child{ border-bottom:none; }
+  .cdl-info{ flex: 1 1 auto; min-width:0; }
+  .cdl-name{ font-size: 14px; font-weight:600; }
+  .cdl-price{ font-size: 12px; color: var(--muted); margin-top:2px; }
+  .cdl-remove{
+    background:none; border:none; color: var(--alert); font-size:12px; text-decoration:underline;
+    padding: 4px 0 4px 4px; flex-shrink:0; white-space:nowrap;
+  }
+  .cart-drawer .qty-control button{ color: var(--text); border-color: var(--line); }
+  .cart-drawer-total{
+    display:flex; justify-content:space-between; font-weight:700; font-size:15px; padding-top: 14px; margin-top: 10px;
+    border-top: 1.5px dashed var(--line); flex-shrink:0;
+  }
+
+  /* ---------- Ticket ---------- */
+  .ticket-wrap{ position:relative; margin-top: 18px; }
+  .ticket{
+    background: var(--surface); color: var(--text); border-radius: 6px; position: relative;
+    box-shadow: 0 14px 40px rgba(0,0,0,0.45);
+  }
+  .ticket-head{ padding: 22px 22px 16px; text-align:center; }
+  .ticket-head .tnum{ font-family:var(--font-mono); font-size: 13px; letter-spacing:0.1em; color: var(--muted); }
+  .ticket-head .tnum b{ color: var(--text); font-size: 15px; }
+  .ticket-head .change-table-link{ margin-left:6px; color: var(--muted); text-decoration:underline; background:none; border:none; font-size:12px; padding:0; cursor:pointer; touch-action:manipulation; }
+  .ticket-head .ttitle{ font-family:var(--font); font-weight:800; font-size: 26px; margin-top: 4px; letter-spacing: 0.02em; }
+
+  .tear{ position:relative; height: 0; border-top: 2px dashed var(--line); margin: 0 18px; }
+  .tear::before, .tear::after{
+    content:''; position:absolute; top:-11px; width:22px; height:22px; border-radius:50%; background: var(--bg);
+  }
+  .tear::before{ left: -29px; }
+  .tear::after{ right: -29px; }
+
+  .ticket-body{ padding: 16px 22px 22px; }
+  .ticket-line{ display:flex; justify-content:space-between; font-size: 14.5px; padding: 5px 0; }
+  .ticket-line .q{ font-family:var(--font-mono); color: var(--muted); margin-right:8px; }
+  .ticket-notes{ margin-top: 10px; font-size: 13px; font-style: italic; color: var(--muted); }
+  .ticket-meta{ font-size: 12px; color: var(--muted); margin-top: 14px; text-align:center; }
+
+  .status-track{ display:flex; align-items:center; margin-top: 22px; }
+  .status-step{ flex:1; text-align:center; position:relative; }
+  .status-dot{
+    width: 16px; height:16px; border-radius:50%; background: #E4E7EC; border: 2px solid var(--line);
+    margin: 0 auto 8px; position:relative; z-index:2;
+  }
+  .status-dot.filled{ background: var(--accent); border-color: var(--accent); }
+  .status-dot.filled.red{ background: var(--alert); border-color: var(--alert); }
+  .status-line{ position:absolute; top:7px; left:-50%; right:50%; height:2px; background: var(--line); z-index:1; }
+  .status-line.filled{ background: var(--accent); }
+  .status-label{ font-size: 11px; text-transform:uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight:600; }
+  .status-label.active{ color: var(--text); }
+
+  .stamp-banner{
+    margin-top: 18px; padding: 16px; border-radius: 10px; text-align:center;
+    animation: stampIn 0.4s ease-out;
+  }
+  .stamp-banner.brass{ background: var(--accent-soft); border: 1.5px solid var(--accent); }
+  .stamp-banner.red{ background: var(--alert-soft); border: 1.5px solid var(--alert); }
+  .stamp-banner .big{ font-family:var(--font); font-weight:800; font-size: 20px; letter-spacing:0.02em; }
+  .stamp-banner.brass .big{ color: var(--accent-dark); }
+  .stamp-banner.red .big{ color: var(--alert); }
+  .stamp-banner .small{ font-size: 12.5px; color: var(--muted); margin-top:4px; }
+
+  @keyframes stampIn{
+    0%{ opacity:0; transform: scale(1.5) rotate(-14deg); }
+    60%{ opacity:1; transform: scale(0.96) rotate(-6deg); }
+    100%{ opacity:1; transform: scale(1) rotate(-4deg); }
+  }
+
+  .new-order-link{ display:block; text-align:center; margin-top: 22px; color: var(--muted); font-size: 13px; text-decoration: underline; background:none; border:none; width:100%; }
+
+  .order-switcher{ display:flex; gap:8px; overflow-x:auto; padding-bottom: 4px; margin-bottom: 14px; scrollbar-width:none; }
+  .switcher-pill{
+    flex-shrink:0; padding: 7px 14px; border-radius:999px; border:1px solid var(--line);
+    background: var(--bg); color: var(--text); font-size:13px; font-weight:600; cursor:pointer; touch-action:manipulation;
+  }
+  .switcher-pill.active{ background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  .switcher-pill.done{ opacity:0.55; }
+
+  .ticket-actions{ display:flex; gap:10px; margin-top:16px; }
+  .ticket-actions .btn-ticket-secondary{ margin-top:0; }
+
+  /* ---------- Edit ticket ---------- */
+  .edit-line{ display:flex; align-items:center; justify-content:space-between; padding:6px 0; font-size:14.5px; }
+  .edit-line .name{ flex:1 1 auto; padding-right:8px; }
+  .edit-line-actions{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
+  .edit-line-actions button{ touch-action: manipulation; }
+  .edit-total{ display:flex; justify-content:space-between; font-weight:700; border-top:1px dashed var(--line); margin-top:8px; padding-top:8px; }
+  .edit-ticket-actions{ display:flex; gap:10px; margin-top:16px; }
+  .btn-save-edit{
+    flex:1; padding:11px; border-radius:8px; border:none; background: var(--accent); color: var(--on-accent);
+    font-weight:700; font-size:13px; cursor:pointer;
+  }
+  .btn-cancel-edit{
+    flex:1; padding:11px; border-radius:8px; border:1px solid var(--line); background:none;
+    color: var(--text); font-weight:600; font-size:13px; cursor:pointer;
+  }
+
+  /* ---------- Messages ---------- */
+  .msg-thread{ margin-top: 18px; border-top: 1px dashed var(--line); padding-top: 14px; }
+  .msg-thread-title{ font-size: 11px; text-transform:uppercase; letter-spacing:0.05em; color: var(--muted); font-weight:700; margin-bottom: 8px; }
+  .msg-list{ display:flex; flex-direction:column; gap:6px; margin-bottom: 10px; max-height: 220px; overflow-y:auto; }
+  .msg-bubble{ max-width: 80%; padding: 7px 11px; border-radius: 12px; font-size: 13px; line-height:1.35; }
+  .msg-bubble .t{ font-size:10px; color: var(--muted); margin-top:2px; }
+  .msg-bubble.customer{ align-self:flex-end; background: var(--accent-soft); border:1px solid var(--accent); border-bottom-right-radius:3px; }
+  .msg-bubble.staff{ align-self:flex-start; background: var(--surface); color: var(--text); border-bottom-left-radius:3px; }
+  .msg-bubble.staff .t{ color: var(--muted); }
+  .msg-empty{ font-size:12.5px; color: var(--muted); font-style:italic; margin-bottom:10px; }
+  .msg-input-row{ display:flex; gap:8px; }
+  .msg-input-row input{
+    flex:1 1 auto; padding: 10px 12px; border-radius:8px; border:1px solid var(--line);
+    background: var(--bg); color: var(--text); font-size:16px; font-family:inherit;
+  }
+  .msg-input-row button{
+    flex-shrink:0; padding: 0 16px; border-radius:8px; border:none; background: var(--accent);
+    color: var(--on-accent); font-weight:700; font-size:13px; cursor:pointer; touch-action: manipulation;
+  }
+  .msg-thread.staff-msg-thread .msg-list{ max-height: 160px; }
+
+  /* Prevents iOS/Android double-tap-to-zoom on rapidly tapped controls
+     (qty steppers, buttons) without disabling normal pinch-zoom. */
+  button{ touch-action: manipulation; }
+
+  /* ---------- Staff ---------- */
+  .staff-header{ display:flex; align-items:center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 10px; }
+  .staff-tabs{ display:flex; gap:8px; }
+  .staff-tab{
+    padding:8px 16px; border-radius:999px; border:1px solid var(--line); background: var(--surface); color: var(--muted);
+    font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:0.03em;
+  }
+  .staff-tab.active{ background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  .logout-link{ background:none; border:none; color: var(--muted); font-size: 13px; text-decoration: underline; }
+
+  .board-section-title{ font-family:var(--font); font-size: 18px; color: var(--muted); margin: 22px 0 10px; letter-spacing:0.05em; }
+  .board-grid{ display:grid; grid-template-columns: 1fr; gap: 12px; }
+  @media(min-width: 640px){ .board-grid{ grid-template-columns: 1fr 1fr; } }
+  @media(min-width: 900px){ .board-grid{ grid-template-columns: 1fr 1fr 1fr; } }
+
+  .order-card{ background: var(--surface); color: var(--text); border-radius: 10px; padding: 14px 16px; box-shadow: 0 6px 18px rgba(0,0,0,0.3); }
+  .order-card .row1{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; }
+  .order-card .tnum{ font-family:var(--font-mono); font-size:12px; color: var(--muted); }
+  .order-card .table{ font-family:var(--font); font-weight:800; font-size: 20px; }
+  .order-card .elapsed{ font-size: 11.5px; color: var(--muted); }
+  .order-card .items{ font-size: 13.5px; margin: 6px 0; }
+  .order-card .items div{ padding: 1px 0; }
+  .order-card .notes{ font-size: 12.5px; font-style: italic; color: var(--muted); margin: 6px 0 10px; }
+  .order-card .status-pill{ display:inline-block; font-size: 11px; font-weight:700; text-transform:uppercase; padding: 4px 10px; border-radius: 999px; margin-bottom: 8px; }
+  .order-card .status-pill.brass{ background: var(--accent-soft); color: var(--accent-dark); }
+  .order-card .status-pill.red{ background: var(--alert-soft); color: var(--alert); }
+
+  .card-actions{ display:flex; gap: 8px; margin-top: 10px; flex-wrap:wrap; }
+  .card-actions button{
+    flex:1; min-width: 120px; border: none; border-radius: 999px; padding: 9px 10px; font-size: 12.5px; font-weight:700;
+    text-transform: uppercase; letter-spacing:0.02em;
+  }
+  .btn-collect{ background: var(--accent); color: var(--on-accent); }
+  .btn-bring{ background: var(--text); color: var(--surface); }
+  .btn-done{ background: transparent; border: 1.5px solid var(--muted) !important; color: var(--text); }
+
+  .empty-state{ text-align:center; color: var(--muted); padding: 30px 10px; font-size: 14px; }
+
+  .menu-admin-cat{ margin-bottom: 22px; }
+  .cat-heading-row{ display:flex; align-items:baseline; justify-content:space-between; margin: 18px 0 8px; gap: 10px; }
+  .cat-heading-row .cat-heading{ margin:0; }
+  .cat-delete{ background:none; border:none; color: var(--muted); font-size:12px; text-decoration:underline; padding:0; white-space:nowrap; }
+  .cat-delete:active{ color: var(--alert); }
+  .menu-admin-item{ display:flex; align-items:center; justify-content:space-between; background: var(--surface); border:1px solid var(--line); border-radius:8px; padding: 10px 14px; margin-bottom:8px; gap: 10px; }
+  .menu-admin-item .n{ font-size:14px; font-weight:600; }
+  .menu-admin-item .p{ font-size:12.5px; color: var(--muted); }
+  .item-admin-actions{ display:flex; align-items:center; gap: 12px; flex-shrink:0; }
+  .item-delete{ background:none; border:none; color: var(--muted); font-size:12px; text-decoration:underline; padding:0; white-space:nowrap; }
+  .item-delete:active{ color: var(--alert); }
+  .add-item-row{ background: transparent; border: 1.5px dashed var(--line); }
+  .add-item-row input{
+    background: var(--bg); border:1px solid var(--line); border-radius:6px; color: var(--text);
+    padding: 9px 10px; font-size:13px; min-width: 0;
+  }
+  .add-item-row .add-item-name{ flex: 1 1 auto; }
+  .add-item-row .add-item-price{ width: 76px; flex-shrink:0; }
+  .item-edit{ color: var(--accent); background:none; border:none; font-size:12.5px; cursor:pointer; padding:0; text-decoration:underline; }
+  .edit-item-row{ display:flex; align-items:center; gap:8px; flex:1 1 auto; }
+  .edit-item-row .edit-item-name{ flex:1 1 auto; }
+  .edit-item-row .edit-item-price{ width: 76px; flex-shrink:0; }
+  .edit-item-actions{ display:flex; gap:8px; flex-shrink:0; }
+  .item-save{ color: var(--accent); background:none; border:1px solid var(--accent); border-radius:6px; font-size:12.5px; cursor:pointer; padding:4px 10px; }
+  .item-cancel{ color: var(--muted); background:none; border:none; font-size:12.5px; cursor:pointer; padding:4px 2px; }
+  .add-item-btn{
+    border:none; background: var(--accent); color: var(--on-accent); font-weight:700; font-size:12px;
+    padding: 9px 12px; border-radius:6px; text-transform:uppercase; letter-spacing:0.03em; white-space:nowrap; flex-shrink:0;
+  }
+  .add-cat-row{ display:flex; gap:10px; margin-top: 26px; padding-top:20px; border-top:1px solid var(--line); }
+  .add-cat-row input{
+    flex:1; background: var(--surface); border:1px solid var(--line); border-radius:8px; color: var(--text);
+    padding: 10px 12px; font-size:14px; min-width:0;
+  }
+  .add-cat-btn{
+    border:none; background: var(--accent); color: var(--on-accent); font-weight:700; font-size:13px;
+    padding: 10px 16px; border-radius:8px; text-transform:uppercase; letter-spacing:0.03em; white-space:nowrap;
+  }
+  .toggle{
+    position:relative; width: 42px; height:24px; border-radius: 999px; background:#C4CAD3; border:none; flex-shrink:0;
+  }
+  .toggle.on{ background: var(--accent); }
+  .toggle .knob{ position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background: #fff; transition: left 0.15s ease; }
+  .toggle.on .knob{ left: 20px; }
+
+  .staff-gate{ text-align:center; padding-top: 12vh; }
+  .staff-gate input{
+    width: 100%; text-align:center; letter-spacing: 0.3em; font-size: 22px; padding: 14px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--surface); color: var(--text); margin: 18px 0; font-family:var(--font-mono);
+  }
+  .staff-gate .error{ color: var(--alert); font-size: 13px; margin-bottom: 10px; min-height: 16px; }
+
+  .fab-staff{
+    position: fixed; right: 14px; top: calc(14px + env(safe-area-inset-top));
+    width: 34px; height: 34px; display:flex; align-items:center; justify-content:center;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 50%;
+    color: var(--muted); z-index: 50; opacity: 0.55; padding:0; text-decoration:none;
+  }
+  .fab-staff:active{ opacity: 0.9; }
+  .fab-staff svg{ width:16px; height:16px; }
+
+  .toast{
+    position: fixed; top: 16px; left:50%; transform: translateX(-50%); background: var(--text); color: var(--surface);
+    padding: 10px 18px; border-radius: 999px; font-size: 13px; z-index: 100; box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    animation: toastIn 0.25s ease-out;
+  }
+  @keyframes toastIn{ from{ opacity:0; transform: translate(-50%,-10px);} to{ opacity:1; transform: translate(-50%,0);} }
+
+  /* ---------- Template overrides: keep it plain ---------- */
+  .tear::before, .tear::after{ display:none; }
+  .ticket, .order-card, .cart-drawer{ border:1px solid var(--line); box-shadow: 0 1px 3px rgba(16,24,40,0.08); }
+  .ticket{ border-radius: var(--radius); }
+  .cart-bar{ border:1px solid var(--line); box-shadow: 0 4px 16px rgba(16,24,40,0.12); }
+  .brand .mark{ font-size: 22px; letter-spacing: 0; color: var(--text); font-weight: 800; text-transform: none; }
+  .brand .brand-logo{ object-fit: contain; }
+  .btn-primary, .cart-bar button, .card-actions button, .cat-tab, .staff-tab{ font-family: var(--font); }
+  .btn-primary:disabled{ background:#C4CAD3; color:#fff; }
+  @keyframes stampIn{ 0%{ opacity:0; transform: translateY(6px);} 100%{ opacity:1; transform:none; } }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import { getDatabase, ref, get, set, update, remove } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+
+const BAR = window.BAR_CONFIG;
+const firebaseConfig = BAR.firebase;
+const fbApp = initializeApp(firebaseConfig);
+const db = getDatabase(fbApp);
+const auth = getAuth(fbApp);
+
+// The database rules require a signed-in user (see the rules block you
+// paste into the Firebase console). We don't have real staff/customer
+// accounts, so everyone signs in anonymously — this is enough to satisfy
+// "auth != null" in the rules and keeps out drive-by bots that scan for
+// open Firebase databases and hit the REST API directly without ever
+// loading this page. It does NOT distinguish staff from customers; that
+// would need real staff logins, a bigger separate step.
+function ensureSignedIn(){
+  return new Promise((resolve, reject)=>{
+    onAuthStateChanged(auth, (user)=>{
+      if(user){ resolve(user); return; }
+      signInAnonymously(auth).catch(reject);
+    }, reject);
+  });
+}
+
+/* =========================================================================
+   BAR ORDERING TEMPLATE — CUSTOMER PAGE (index.html)
+   -------------------------------------------------------------------------
+   Customers pick a table, order from the menu, and watch their order update
+   live. Staff work happens on staff.html. Both pages share one Firebase
+   Realtime Database and poll it every few seconds.
+
+   All venue-specific settings (name, colours, currency, wording, tables,
+   starting menu, Firebase keys) live in config.js — you shouldn't need to
+   edit this file. The starting menu is only used to seed Firebase the first
+   time; after that, edit the menu from the staff page (Menu tab).
+   ========================================================================= */
+
+  const DEFAULT_MENU = BAR.menu;
+
+  const CURRENCY = BAR.currency;
+  const POLL_MS = 3000;
+  // Wording that differs between venues lives in config.js -> labels.
+  const L = BAR.labels;
+
+
+  // ------------------------------------------------------------- branding
+  // Everything venue-specific comes from config.js — see README.md.
+  document.title = BAR.name + " — " + "Order here";
+  function brandHtml(){
+    return BAR.logoUrl
+      ? `<img class="brand-logo" src="${BAR.logoUrl}" alt="${BAR.name.replace(/"/g,'&quot;')}" style="width:88px;height:88px;display:block;margin:0 auto;">`
+      : `<div class="mark">${BAR.name.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</div>`;
+  }
+
+
+  const app = document.getElementById("app");
+
+  const state = {
+    screen: "menu",           // table-select | menu | ticket
+    menu: null,
+    tables: null,             // [{ name, tables:[...] }, ...]
+    promotions: [],           // active/inactive promotions — see ensurePromotions
+    table: null,              // the table name chosen for the order currently being composed
+    activeCat: 0,
+    cart: {},                 // itemId -> qty
+    cartOpen: false,
+    notes: "",
+    currentOrderId: null,
+    currentOrder: null,
+    appendOrderId: null,      // set when adding items to an already-sent ticket
+    appendTicketNumber: null,
+    orders: [],
+    toast: null,
+    editingItem: null,        // "ci-ii" of the item currently being edited on the 86 board
+    msgDraft: "",             // in-progress "message the bar" text — kept in state so
+                               // the background poll's re-render doesn't erase what's typed
+    myOrderIds: [],           // every ticket this device has placed and can still switch back to
+    myOrdersCache: {},        // orderId -> last-fetched order object, for the ticket-switcher pills
+    editingTable: false,      // true while the ticket screen shows the "change table" picker
+    editingTableForOrderId: null, // set when table-select is being used to correct an existing order's table, not to start a new one
+  };
+
+  let pollTimer = null;
+
+  // ---------------------------------------------------------------- storage
+  // Backed by Firebase Realtime Database instead of Claude's window.storage,
+  // so this works when hosted on Netlify (or anywhere else) rather than only
+  // inside a published Claude artifact.
+  async function storageGet(key){
+    try{
+      const snap = await get(ref(db, key));
+      return snap.exists() ? snap.val() : null;
+    }catch(e){ console.error("firebase get failed", key, e); return null; }
+  }
+  async function storageSet(key, value){
+    try{ await set(ref(db, key), value); return true; }
+    catch(e){ console.error("firebase set failed", key, e); return false; }
+  }
+  async function storageUpdate(key, value){
+    try{ await update(ref(db, key), value); return true; }
+    catch(e){ console.error("firebase update failed", key, e); return false; }
+  }
+  async function storageRemove(key){
+    try{ await remove(ref(db, key)); return true; }
+    catch(e){ console.error("firebase remove failed", key, e); return false; }
+  }
+
+  async function ensureMenu(){
+    let menu = await storageGet("menu");
+    if(!menu){ menu = DEFAULT_MENU; await storageSet("menu", menu); }
+    return menu;
+  }
+  const DEFAULT_TABLES = BAR.tables;
+  async function ensureTables(){
+    let tables = await storageGet("tables");
+    if(!tables){ tables = DEFAULT_TABLES; await storageSet("tables", tables); }
+    return tables;
+  }
+
+  // ------------------------------------------------------------ PROMOTIONS
+  // A promotion is: { id, name, description, active,
+  //   dateMode: "always" | "dates", fromDate, toDate (yyyy-mm-dd, dates mode only),
+  //   dayMode: "everyday" | "days", days: [0-6,...] (JS getDay() convention, days mode only),
+  //   hourMode: "allday" | "hours", fromHour, toHour ("HH:MM", hours mode only),
+  //   showWhenNotLive: boolean (advertise the schedule even outside the live window),
+  //   discountPercent, includedItemIds: [itemId,...], priceOverrides: { itemId: price } }
+  // Dates, Days and Hours are three independent restrictions — a promotion
+  // is only live when ALL of whichever ones are turned on currently match.
+  // "Included" is a snapshot of item ids chosen when the promotion was made —
+  // a drink added to a category later does NOT automatically join a promotion
+  // that included that whole category at the time, so a discount never
+  // silently appears on a brand-new item. includedItemIds/priceOverrides are
+  // the only source of truth for pricing; categories are just how staff
+  // pick them in the editor.
+  const DAY_NAMES_SHORT = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  async function ensurePromotions(){
+    let promos = await storageGet("promotions");
+    if(!promos){ promos = []; await storageSet("promotions", promos); }
+    return promos;
+  }
+  function isPromoActiveNow(promo, now){
+    now = now || new Date();
+    if(!promo.active) return false;
+    if(promo.dateMode === "dates"){
+      const d = now.toISOString().slice(0,10);
+      if(d < promo.fromDate || d > promo.toDate) return false;
+    }
+    if(promo.dayMode === "days"){
+      if(!promo.days || !promo.days.includes(now.getDay())) return false;
+    }
+    if(promo.hourMode === "hours"){
+      const hm = String(now.getHours()).padStart(2,'0')+":"+String(now.getMinutes()).padStart(2,'0');
+      if(promo.fromHour <= promo.toHour){
+        if(hm < promo.fromHour || hm > promo.toHour) return false;
+      } else {
+        // crosses midnight, e.g. 22:00-02:00
+        if(hm < promo.fromHour && hm > promo.toHour) return false;
+      }
+    }
+    return true;
+  }
+  function promoPriceForItem(promo, item){
+    if((promo.discountType||"percent") !== "percent") return null; // bogo/threshold aren't a flat per-unit price
+    if(!promo.includedItemIds || !promo.includedItemIds.includes(item.id)) return null;
+    if(promo.priceOverrides && typeof promo.priceOverrides[item.id] === "number"){
+      return promo.priceOverrides[item.id];
+    }
+    const pct = typeof promo.discountPercent === "number" ? promo.discountPercent : 0;
+    return Math.round(item.price * (1 - pct/100) * 100) / 100;
+  }
+  // The best currently-live FLAT discount for an item (percent/override
+  // type only) — used for the menu-browsing badge, before a quantity is
+  // even chosen. Never worse than the original price, and if two
+  // promotions overlap the customer gets whichever is cheaper.
+  function bestSaleForItem(item, promotions){
+    let best = null;
+    (promotions||[]).forEach(promo=>{
+      if(!isPromoActiveNow(promo)) return;
+      const price = promoPriceForItem(promo, item);
+      if(price === null || price >= item.price) return;
+      if(best === null || price < best) best = price;
+    });
+    return best;
+  }
+  // Total price for a given quantity of one item, checking every active
+  // promotion that includes it — flat (percent/override), "buy X get Y
+  // free" (every complete set of buy+get gets `get` of them free), and
+  // "buy X for Y% off" (once the order has at least X of this item, the
+  // whole quantity gets the percentage off). Picks whichever active
+  // promotion gives the customer the lowest total; never worse than the
+  // undiscounted price.
+  function computeLineTotal(item, qty, promotions){
+    let best = item.price * qty;
+    (promotions||[]).forEach(promo=>{
+      if(!isPromoActiveNow(promo)) return;
+      if(!promo.includedItemIds || !promo.includedItemIds.includes(item.id)) return;
+      const type = promo.discountType || "percent";
+      let total;
+      if(type === "percent"){
+        const unit = promoPriceForItem(promo, item);
+        if(unit === null) return;
+        total = unit * qty;
+      } else if(type === "bogo"){
+        const buy = promo.bogoBuy > 0 ? promo.bogoBuy : 1;
+        const get = promo.bogoGet > 0 ? promo.bogoGet : 0;
+        const setSize = buy + get;
+        if(setSize <= 0 || get <= 0) return;
+        const sets = Math.floor(qty / setSize);
+        const remainder = qty % setSize;
+        const payableUnits = sets*buy + remainder;
+        total = payableUnits * item.price;
+      } else if(type === "threshold"){
+        const minQty = promo.thresholdQty > 0 ? promo.thresholdQty : 1;
+        if(qty < minQty) return;
+        const pct = typeof promo.thresholdPercent === "number" ? promo.thresholdPercent : 0;
+        total = qty * item.price * (1 - pct/100);
+      } else {
+        return;
+      }
+      if(total < best) best = total;
+    });
+    return Math.round(best * 100) / 100;
+  }
+  // What to show on the menu-browsing item row, before any quantity is
+  // chosen: a flat sale price if one applies, or (for bogo/threshold,
+  // which depend on quantity) a short hint describing the deal instead.
+  function promoDisplayForItem(item, promotions){
+    const flatBest = bestSaleForItem(item, promotions);
+    if(flatBest !== null) return { flatBest, hint: null };
+    let hint = null;
+    (promotions||[]).forEach(promo=>{
+      if(!isPromoActiveNow(promo)) return;
+      if(!promo.includedItemIds || !promo.includedItemIds.includes(item.id)) return;
+      const type = promo.discountType || "percent";
+      if(type === "bogo"){
+        const buy = promo.bogoBuy > 0 ? promo.bogoBuy : 1;
+        const get = promo.bogoGet > 0 ? promo.bogoGet : 0;
+        if(get > 0) hint = `Buy ${buy} get ${get} free`;
+      } else if(type === "threshold"){
+        const q = promo.thresholdQty > 0 ? promo.thresholdQty : 1;
+        const pct = typeof promo.thresholdPercent === "number" ? promo.thresholdPercent : 0;
+        if(pct > 0) hint = `Buy ${q}+ for ${pct}% off`;
+      }
+    });
+    return { flatBest: null, hint };
+  }
+  function activePromotions(promotions){
+    return (promotions||[]).filter(p=>isPromoActiveNow(p));
+  }
+  // Promotions marked "advertise" that are toggled on but not currently in
+  // their live window — shown as a heads-up (no discount applied yet).
+  function advertisedInactivePromotions(promotions){
+    return (promotions||[]).filter(p=>p.active && p.showWhenNotLive && !isPromoActiveNow(p));
+  }
+  function formatDateShortForCustomer(iso){
+    if(!iso) return "?";
+    const [y,m,d] = iso.split("-");
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    return `${parseInt(d)} ${months[parseInt(m)-1]}`;
+  }
+  function formatHour12ForCustomer(hm){
+    if(!hm) return "?";
+    let [h,m] = hm.split(":").map(Number);
+    const ampm = h >= 12 ? "pm" : "am";
+    h = h % 12; if(h===0) h = 12;
+    return m === 0 ? `${h}${ampm}` : `${h}:${String(m).padStart(2,'0')}${ampm}`;
+  }
+  function formatPromoScheduleForCustomer(promo){
+    const parts = [];
+    if(promo.dateMode === "dates"){
+      parts.push(`${formatDateShortForCustomer(promo.fromDate)}\u2013${formatDateShortForCustomer(promo.toDate)}`);
+    }
+    if(promo.dayMode === "days" && promo.days && promo.days.length){
+      const names = promo.days.slice().sort().map(d=>DAY_NAMES_SHORT[d]);
+      parts.push(names.length===1 ? names[0]+"s" : names.join("/"));
+    }
+    if(promo.hourMode === "hours"){
+      parts.push(`${formatHour12ForCustomer(promo.fromHour)}\u2013${formatHour12ForCustomer(promo.toHour)}`);
+    }
+    return parts.length ? parts.join(", ") : "Every day";
+  }
+
+  // Orders live under orders/{id} as individual keys instead of one big
+  // array. This means two staff members tapping buttons on different
+  // tickets at the same moment can't clobber each other's write, and the
+  // customer's ticket screen can fetch just its own order instead of
+  // pulling every order on every poll.
+  async function getOrders(){
+    const obj = await storageGet("orders");
+    if(!obj || typeof obj !== "object") return [];
+    return Object.values(obj);
+  }
+  async function getOrder(id){
+    return storageGet("orders/"+id);
+  }
+  async function saveNewOrder(order){
+    return storageSet("orders/"+order.id, order);
+  }
+  async function updateOrder(id, fields){
+    return storageUpdate("orders/"+id, fields);
+  }
+  async function sendOrderMessage(orderId, from, text){
+    text = text.trim();
+    if(!text) return null;
+    let order = await getOrder(orderId);
+    if(!order) order = await storageGet("archive/"+orderId);
+    if(!order) return null;
+    const messages = (order.messages || []).concat([{ from, text, ts: Date.now() }]);
+    const ok = await updateOrder(orderId, { messages });
+    if(!ok) return null;
+    return messages;
+  }
+  async function nextTicketNumber(){
+    let n = await storageGet("ticket-counter");
+    n = (typeof n === "number" ? n : 0) + 1;
+    await storageSet("ticket-counter", n);
+    return n;
+  }
+
+  // A ticket that hasn't changed status in an hour is either a customer
+  // who never came back, or one that got stuck — staff.html checks every
+  // active order for this too, but this catches it even if staff.html
+  // isn't open at all, since it runs on the customer's own poll of their
+  // own ticket.
+  const STALE_AFTER_MS = 60 * 60 * 1000; // 1 hour
+  function lastActivityAt(o){
+    return Math.max(o.createdAt||0, o.receivedAt||0, o.ready_collectAt||0, o.bringing_upAt||0);
+  }
+
+  // ------------------------------------------------------ MY-ORDERS TRACKING
+  // This device can have more than one ticket open at once (order, then
+  // order again before the first is done). We keep the full list of ids in
+  // localStorage — not just the most recent one — so switching between
+  // them, or starting a new order without losing track of an older one, is
+  // possible from the ticket screen's order-switcher.
+  function loadMyOrderIds(){
+    try{
+      const raw = localStorage.getItem("ro_myOrderIds");
+      if(raw) return JSON.parse(raw);
+    }catch(e){ /* corrupt localStorage value — fall through to legacy check */ }
+    // Migrate a pre-multi-ticket single saved order, if present.
+    const legacy = localStorage.getItem("ro_currentOrderId");
+    return legacy ? [legacy] : [];
+  }
+  function saveMyOrderIds(){
+    localStorage.setItem("ro_myOrderIds", JSON.stringify(state.myOrderIds));
+    localStorage.removeItem("ro_currentOrderId"); // superseded by ro_myOrderIds
+  }
+  function addMyOrderId(id){
+    if(!state.myOrderIds.includes(id)) state.myOrderIds.push(id);
+    saveMyOrderIds();
+  }
+  // Refreshes the cached order data behind each tracked id (for the
+  // switcher pills' ticket numbers/status), and quietly drops any id that
+  // no longer resolves to a real order — e.g. staff deleted it, or it was
+  // cleared from Firebase — so stale references don't pile up.
+  async function refreshMyOrdersCache(){
+    const results = await Promise.all(state.myOrderIds.map(async id=>{
+      let o = await getOrder(id);
+      if(!o) o = await storageGet("archive/"+id);
+      return o;
+    }));
+    const stillValid = [];
+    const cache = {};
+    state.myOrderIds.forEach((id,i)=>{
+      if(results[i]){ stillValid.push(id); cache[id] = results[i]; }
+    });
+    if(stillValid.length !== state.myOrderIds.length){
+      state.myOrderIds = stillValid;
+      saveMyOrderIds();
+    }
+    state.myOrdersCache = cache;
+  }
+
+  function showToast(msg){
+    state.toast = msg;
+    render();
+    setTimeout(()=>{ state.toast = null; render(); }, 2200);
+  }
+
+  // ------------------------------------------------------------------ util
+  function timeAgo(ts){
+    const s = Math.floor((Date.now()-ts)/1000);
+    if(s < 60) return "just now";
+    const m = Math.floor(s/60);
+    if(m < 60) return m + " min ago";
+    const h = Math.floor(m/60);
+    if(h < 24) return h + " hour" + (h===1?"":"s") + " ago";
+    const d = Math.floor(h/24);
+    return d + " day" + (d===1?"":"s") + " ago";
+  }
+  function money(n){ return CURRENCY + n.toFixed(2); }
+
+  function cartLines(){
+    if(!state.menu) return [];
+    const all = state.menu.flatMap(c=>c.items);
+    return Object.entries(state.cart).filter(([,q])=>q>0).map(([id,qty])=>{
+      const item = all.find(i=>i.id===id);
+      if(!item) return null;
+      // Effective per-unit price = the quantity-aware total divided back
+      // out — keeps every downstream total/order calculation (which all
+      // just do qty × price) correct even for "buy X get Y free" and
+      // threshold deals, without changing the order record's shape.
+      const total = computeLineTotal(item, qty, state.promotions);
+      const effectivePrice = Math.round((total/qty) * 100) / 100;
+      return { ...item, qty, price: effectivePrice, originalPrice: item.price };
+    }).filter(Boolean);
+  }
+  function cartCount(){ return cartLines().reduce((a,l)=>a+l.qty,0); }
+  function cartTotal(){ return cartLines().reduce((a,l)=>a+l.qty*l.price,0); }
+
+  // --------------------------------------------------------------- polling
+  function startPolling(fn){
+    stopPolling();
+    fn();
+    pollTimer = setInterval(fn, POLL_MS);
+  }
+  function stopPolling(){ if(pollTimer){ clearInterval(pollTimer); pollTimer = null; } }
+
+  // ------------------------------------------------------------ attention
+  // Lightweight "notice me" layer: a synthesized beep (no audio file
+  // needed), a short vibration on phones that support it, and a flashing
+  // browser tab title. This works as long as the tab is open somewhere —
+  // even backgrounded or on another app — but can't wake a closed tab or
+  // a locked phone. That needs real push notifications, which is a
+  // separate, bigger piece (server-triggered, outside this file).
+  let audioCtx = null;
+  function playAlertTone(freq, durationMs){
+    try{
+      if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      if(audioCtx.state === "suspended") audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.35, audioCtx.currentTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + durationMs/1000);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + durationMs/1000 + 0.05);
+    }catch(e){ /* audio blocked or unavailable — fail silently */ }
+  }
+  function playNewOrderAlert(){
+    playAlertTone(880, 160);
+    setTimeout(()=>playAlertTone(1046, 180), 190);
+    if(navigator.vibrate) navigator.vibrate([180,80,180]);
+  }
+  function playTicketUpdateAlert(){
+    playAlertTone(660, 220);
+    if(navigator.vibrate) navigator.vibrate([150,60,150]);
+  }
+  function playOrderConfirmedAlert(){
+    playAlertTone(784, 140);
+    if(navigator.vibrate) navigator.vibrate(120);
+  }
+  function playMessageAlert(){
+    playAlertTone(990, 120);
+    setTimeout(()=>playAlertTone(1320, 140), 130);
+    if(navigator.vibrate) navigator.vibrate([100,50,100]);
+  }
+
+  const ORIGINAL_TITLE = document.title;
+  let titleFlashTimer = null;
+  function flashTabTitle(msg){
+    if(titleFlashTimer) return;
+    let on = false;
+    titleFlashTimer = setInterval(()=>{
+      document.title = on ? ORIGINAL_TITLE : msg;
+      on = !on;
+    }, 1000);
+  }
+  function stopFlashTabTitle(){
+    if(titleFlashTimer){ clearInterval(titleFlashTimer); titleFlashTimer = null; }
+    document.title = ORIGINAL_TITLE;
+  }
+  window.addEventListener("focus", stopFlashTabTitle);
+  document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) stopFlashTabTitle(); });
+
+  // ================================================================ TABLE
+  // Shown before the menu for every fresh order (not remembered between
+  // orders — see chooseTable below) so every ticket has a table attached
+  // from the start, instead of staff having to guess whose drink is whose.
+  function renderTableSelect(){
+    app.className = "";
+    app.innerHTML = `
+      <div class="brand">${brandHtml()}</div>
+      <div class="table-select-intro">Which table are you at?</div>
+      ${state.tables.map(cat=>`
+        <div class="table-cat-heading">${cat.name}</div>
+        <div class="table-grid">
+          ${cat.tables.map(t=>`<button class="table-btn" data-table="${t.replace(/"/g,'&quot;')}">${t}</button>`).join("")}
+        </div>
+      `).join("")}
+      ${state.editingTableForOrderId ? `<button class="new-order-link" id="cancelTableChange">Cancel</button>` : ""}
+    `;
+    app.querySelectorAll(".table-btn").forEach(btn=>{
+      btn.onclick = ()=>{ chooseTable(btn.dataset.table); };
+    });
+    const cancelBtn = document.getElementById("cancelTableChange");
+    if(cancelBtn) cancelBtn.onclick = ()=>{
+      state.editingTableForOrderId = null;
+      state.screen = "ticket";
+      render();
+    };
+  }
+  async function chooseTable(name){
+    if(state.editingTableForOrderId){
+      const orderId = state.editingTableForOrderId;
+      const ok = await updateOrder(orderId, { table: name });
+      if(!ok){ showToast("Couldn't update the table — try again."); return; }
+      if(state.currentOrder && state.currentOrder.id === orderId) state.currentOrder = { ...state.currentOrder, table: name };
+      if(state.myOrdersCache[orderId]) state.myOrdersCache[orderId] = { ...state.myOrdersCache[orderId], table: name };
+      state.editingTableForOrderId = null;
+      state.screen = "ticket";
+      render();
+      return;
+    }
+    state.table = name;
+    state.editingTable = false;
+    state.screen = "menu";
+    render();
+  }
+
+  // ======================================================== CUSTOMER: MENU
+  function renderMenu(){
+    app.className = "";
+    const cat = state.menu[state.activeCat];
+    const lines = cartLines();
+    if(state.cartOpen && lines.length===0) state.cartOpen = false;
+    const sendLabel = state.appendOrderId ? "Add to order" : "Send order";
+    const prevTabs = document.getElementById("catTabs");
+    const savedTabScroll = prevTabs ? prevTabs.scrollLeft : 0;
+    const openTrackedIds = state.myOrderIds.filter(id=>{
+      const c = state.myOrdersCache[id];
+      return !c || c.status !== "completed"; // unknown status → assume still open, safer than hiding it
+    });
+    const myOrdersBanner = (openTrackedIds.length > 0 && !state.appendOrderId) ? `
+      <div class="table-pill my-orders-banner">
+        <span>You have ${openTrackedIds.length} order${openTrackedIds.length===1?'':'s'} in progress</span>
+        <button id="viewMyOrder">View</button>
+      </div>
+    ` : "";
+    const livePromos = activePromotions(state.promotions);
+    const upcomingPromos = advertisedInactivePromotions(state.promotions);
+    const promoBannersHtml = livePromos.map(p=>`
+      <div class="promo-banner">
+        <div class="pname">${escapeHtml(p.name)} · <span class="plive">live now</span></div>
+        ${p.description ? `<div class="pdesc">${escapeHtml(p.description)}</div>` : ""}
+      </div>
+    `).join("") + upcomingPromos.map(p=>`
+      <div class="promo-banner upcoming">
+        <div class="pname">${escapeHtml(p.name)} · ${formatPromoScheduleForCustomer(p)}</div>
+        ${p.description ? `<div class="pdesc">${escapeHtml(p.description)}</div>` : ""}
+      </div>
+    `).join("");
+    app.innerHTML = `
+      <div class="brand">${brandHtml()}<div class="sub">${escapeHtml(BAR.tagline)}</div></div>
+      ${state.appendOrderId
+        ? `<div class="table-pill">Adding to order <b>#${String(state.appendTicketNumber).padStart(3,'0')}</b></div>`
+        : `<div class="table-pill">Table: <b>${escapeHtml(state.table||"")}</b><button class="change" id="changeTable">change</button></div>`
+      }
+      ${!state.appendOrderId ? myOrdersBanner : ""}
+      ${promoBannersHtml}
+      <div class="cat-tabs" id="catTabs">
+        ${state.menu.map((c,i)=>`<button class="cat-tab ${i===state.activeCat?'active':''}" data-i="${i}">${c.name}</button>`).join("")}
+      </div>
+      <div class="cat-heading">${cat.name}</div>
+      <div id="itemsList">
+        ${cat.items.map(item=>renderItemRow(item)).join("")}
+      </div>
+      <div class="notes-block">
+        <textarea id="notesInput" placeholder="Any notes for the bar? (e.g. no ice)">${state.notes}</textarea>
+      </div>
+      <div class="cart-bar">
+        <button class="info" id="openCart" ${lines.length===0?'disabled':''}><span class="count">${cartCount()} item${cartCount()===1?'':'s'}</span> · ${money(cartTotal())}</button>
+        <button id="sendOrder" ${lines.length===0?'disabled':''}>${sendLabel}</button>
+      </div>
+      ${state.cartOpen ? renderCartDrawer(lines) : ""}
+    `;
+    const changeTableBtn = document.getElementById("changeTable");
+    if(changeTableBtn) changeTableBtn.onclick = ()=>{ state.screen = "table-select"; render(); };
+    const viewMyOrderBtn = document.getElementById("viewMyOrder");
+    if(viewMyOrderBtn) viewMyOrderBtn.onclick = ()=> switchToOrder(openTrackedIds[openTrackedIds.length-1]);
+    document.getElementById("catTabs").querySelectorAll(".cat-tab").forEach(btn=>{
+      btn.onclick = ()=>{ state.activeCat = parseInt(btn.dataset.i); render(); };
+    });
+    const catTabsEl = document.getElementById("catTabs");
+    catTabsEl.scrollLeft = savedTabScroll;
+    wireCatTabsScroll(catTabsEl);
+    document.getElementById("notesInput").oninput = (e)=>{ state.notes = e.target.value; };
+    const openCartBtn = document.getElementById("openCart");
+    if(openCartBtn) openCartBtn.onclick = ()=>{ state.cartOpen = true; render(); };
+    document.getElementById("itemsList").querySelectorAll("[data-plus]").forEach(b=>{
+      b.onclick = ()=>{ state.cart[b.dataset.plus] = (state.cart[b.dataset.plus]||0)+1; render(); };
+    });
+    document.getElementById("itemsList").querySelectorAll("[data-minus]").forEach(b=>{
+      b.onclick = ()=>{ state.cart[b.dataset.minus] = Math.max(0,(state.cart[b.dataset.minus]||0)-1); render(); };
+    });
+    const sendBtn = document.getElementById("sendOrder");
+    if(sendBtn) sendBtn.onclick = submitOrder;
+
+    if(state.cartOpen){
+      const closeCart = ()=>{ state.cartOpen = false; render(); };
+      document.getElementById("cartBackdrop").onclick = closeCart;
+      document.getElementById("closeCart").onclick = closeCart;
+      document.querySelectorAll(".cart-drawer [data-plus]").forEach(b=>{
+        b.onclick = ()=>{ state.cart[b.dataset.plus] = (state.cart[b.dataset.plus]||0)+1; render(); };
+      });
+      document.querySelectorAll(".cart-drawer [data-minus]").forEach(b=>{
+        b.onclick = ()=>{ state.cart[b.dataset.minus] = Math.max(0,(state.cart[b.dataset.minus]||0)-1); render(); };
+      });
+      document.querySelectorAll(".cart-drawer [data-remove]").forEach(b=>{
+        b.onclick = ()=>{ delete state.cart[b.dataset.remove]; render(); };
+      });
+    }
+  }
+
+  // Itemized cart — lets someone remove or adjust a specific drink
+  // without hunting back through the menu for it.
+  function renderCartDrawer(lines){
+    return `
+      <div class="cart-backdrop" id="cartBackdrop"></div>
+      <div class="cart-drawer">
+        <div class="cart-drawer-head">
+          <div class="cart-drawer-title">Your order</div>
+          <button class="cart-drawer-close" id="closeCart">✕</button>
+        </div>
+        <div class="cart-drawer-list">
+          ${lines.map(l=>`
+            <div class="cart-drawer-line">
+              <div class="cdl-info">
+                <div class="cdl-name">${l.name}</div>
+                <div class="cdl-price">${l.originalPrice > l.price ? `<span class="price-crossed">${money(l.originalPrice)}</span> ` : ""}${money(l.price)} each</div>
+              </div>
+              <div class="qty-control">
+                <button data-minus="${l.id}">−</button>
+                <div class="n">${l.qty}</div>
+                <button data-plus="${l.id}">+</button>
+              </div>
+              <button class="cdl-remove" data-remove="${l.id}" aria-label="Remove ${l.name}">Remove</button>
+            </div>
+          `).join("")}
+        </div>
+        <div class="cart-drawer-total"><span>Total</span><span>${money(lines.reduce((a,l)=>a+l.qty*l.price,0))}</span></div>
+      </div>
+    `;
+  }
+
+  function renderItemRow(item){
+    const qty = state.cart[item.id] || 0;
+    if(!item.available){
+      return `<div class="item-row unavailable">
+        <div class="item-info"><div class="name">${item.name}</div><div class="tag86">Unavailable</div></div>
+      </div>`;
+    }
+    const { flatBest, hint } = promoDisplayForItem(item, state.promotions);
+    let priceHtml;
+    if(flatBest !== null){
+      priceHtml = `<div class="price-row"><span class="price price-crossed">${money(item.price)}</span><span class="price price-sale">${money(flatBest)}</span><span class="sale-tag">Sale</span></div>`;
+    } else if(hint){
+      priceHtml = `<div class="price">${money(item.price)}</div><div class="promo-hint">${escapeHtml(hint)}</div>`;
+    } else {
+      priceHtml = `<div class="price">${money(item.price)}</div>`;
+    }
+    return `<div class="item-row">
+      <div class="item-info"><div class="name">${item.name}</div>${priceHtml}</div>
+      <div class="qty-control">
+        <button data-minus="${item.id}">−</button>
+        <div class="n">${qty}</div>
+        <button data-plus="${item.id}">+</button>
+      </div>
+    </div>`;
+  }
+
+  // Guards against a fast double-tap (or a slow connection + impatient
+  // second tap) firing two separate submitOrder() calls before the first
+  // one's network request has even finished, which could otherwise create
+  // two tickets for one order. Reset in the `finally` block below no
+  // matter how the function exits, so a failed send doesn't leave sending
+  // permanently locked.
+  let isSubmitting = false;
+  async function submitOrder(){
+    if(isSubmitting) return;
+    const lines = cartLines();
+    if(lines.length===0) return;
+    isSubmitting = true;
+    const sendBtn = document.getElementById("sendOrder");
+    if(sendBtn){ sendBtn.disabled = true; sendBtn.textContent = "Sending…"; }
+
+    try{
+      let useAppend = !!state.appendOrderId;
+      if(useAppend){
+        // Merge these items into the ticket that's already been sent,
+        // instead of spawning a second separate ticket.
+        const existing = await getOrder(state.appendOrderId);
+        if(!existing){
+          showToast("Couldn't find that order — sending as a new one.");
+          state.appendOrderId = null;
+          useAppend = false;
+        } else {
+          const mergedItems = existing.items.map(i=>({ ...i }));
+          lines.forEach(l=>{
+            const idx = mergedItems.findIndex(m=>m.name===l.name && m.price===l.price);
+            if(idx>-1) mergedItems[idx].qty += l.qty;
+            else mergedItems.push({ name:l.name, qty:l.qty, price:l.price });
+          });
+          const mergedNotes = [existing.notes, state.notes.trim()].filter(Boolean).join(" / ");
+          const ok = await updateOrder(state.appendOrderId, { items: mergedItems, notes: mergedNotes, status: "received" });
+          if(!ok){
+            showToast("Couldn't send that — check your connection and try again.");
+            if(sendBtn){ sendBtn.disabled = false; sendBtn.textContent = "Add to order"; }
+            return;
+          }
+          state.currentOrderId = state.appendOrderId;
+          state.myOrdersCache[state.currentOrderId] = { ...existing, items: mergedItems, notes: mergedNotes, status: "received" };
+          state.appendOrderId = null;
+          state.appendTicketNumber = null;
+        }
+      }
+      if(!useAppend){
+        const ticketNumber = await nextTicketNumber();
+        const order = {
+          id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()+Math.random())),
+          ticketNumber,
+          table: state.table || "",
+          items: lines.map(l=>({ name:l.name, qty:l.qty, price:l.price })),
+          notes: state.notes.trim(),
+          status: "received",     // received -> ready_collect | bringing_up -> completed
+          createdAt: Date.now(),
+          messages: [],            // {from:"customer"|"staff", text, ts}
+        };
+        const ok = await saveNewOrder(order);
+        if(!ok){
+          showToast("Couldn't send your order — check your connection and try again.");
+          if(sendBtn){ sendBtn.disabled = false; sendBtn.textContent = "Send order"; }
+          return;
+        }
+        state.currentOrderId = order.id;
+        state.myOrdersCache[order.id] = order;
+        addMyOrderId(order.id);
+      }
+
+      state.lastKnownStatus = "received";
+      state.lastKnownMsgCount = 0;
+      state.cart = {};
+      state.cartOpen = false;
+      state.notes = "";
+      state.screen = "ticket";
+      playOrderConfirmedAlert();
+      render();
+      startPolling(pollCurrentOrder);
+    } finally {
+      isSubmitting = false;
+    }
+  }
+
+  async function pollCurrentOrder(){
+    const hadOrderBefore = !!state.currentOrder;
+    let order = await getOrder(state.currentOrderId);
+    if(!order) order = await storageGet("archive/"+state.currentOrderId);
+
+    if(!order && hadOrderBefore){
+      // It existed a moment ago and now doesn't anywhere (not even
+      // archived) — staff deleted it. Send them back to the menu instead
+      // of leaving them stuck looking at a ticket that no longer exists.
+      stopPolling();
+      state.myOrderIds = state.myOrderIds.filter(id=>id!==state.currentOrderId);
+      saveMyOrderIds();
+      delete state.myOrdersCache[state.currentOrderId];
+      state.currentOrderId = null;
+      state.currentOrder = null;
+      state.appendOrderId = null;
+      state.appendTicketNumber = null;
+      state.screen = "menu";
+      showToast("That order was removed by staff.");
+      render();
+      return;
+    }
+
+    if(order && order.status !== "completed" && (Date.now() - lastActivityAt(order)) > STALE_AFTER_MS){
+      const ok = await updateOrder(order.id, { status: "completed", completedAt: Date.now() });
+      if(ok){
+        order = { ...order, status: "completed", completedAt: Date.now() };
+        showToast("This order timed out after an hour with no updates.");
+      }
+    }
+
+    if(order && state.lastKnownStatus && order.status !== state.lastKnownStatus){
+      playTicketUpdateAlert();
+      flashTabTitle("🔔 Order update!");
+    }
+    if(order){
+      const msgs = order.messages || [];
+      const newStaffMsgs = msgs.filter(m=>m.from==="staff");
+      if(typeof state.lastKnownMsgCount === "number" && newStaffMsgs.length > state.lastKnownMsgCount){
+        playMessageAlert();
+        flashTabTitle("💬 New message from staff");
+      }
+      state.lastKnownMsgCount = newStaffMsgs.length;
+    }
+    if(order) state.lastKnownStatus = order.status;
+    state.currentOrder = order || null;
+    if(order) state.myOrdersCache[state.currentOrderId] = order;
+    if(state.myOrderIds.length > 1) await refreshMyOrdersCache();
+    render();
+  }
+
+  // Switches which tracked ticket is currently being viewed, without
+  // losing track of the others — used by the order-switcher pills.
+  async function switchToOrder(id){
+    stopPolling();
+    state.currentOrderId = id;
+    state.currentOrder = state.myOrdersCache[id] || null;
+    state.lastKnownStatus = state.currentOrder ? state.currentOrder.status : null;
+    state.lastKnownMsgCount = state.currentOrder ? (state.currentOrder.messages || []).filter(m=>m.from==="staff").length : 0;
+    state.msgDraft = "";
+    state.screen = "ticket";
+    render();
+    await pollCurrentOrder();
+    if(state.currentOrder && state.currentOrder.status !== "completed") startPolling(pollCurrentOrder);
+  }
+
+  // ====================================================== CUSTOMER: TICKET
+  function renderTicket(){
+    app.className = "";
+    const o = state.currentOrder;
+    if(!o){
+      app.innerHTML = `<div class="empty-state">Looking up your order…</div>`;
+      return;
+    }
+    const isReady = o.status === "ready_collect";
+    const isBringing = o.status === "bringing_up";
+    const isDone = o.status === "completed";
+    const canEdit = o.status === "received";
+    const step2Filled = isReady || isBringing || isDone;
+    const step2Red = isBringing;
+
+    let banner = "";
+    if(isReady){
+      banner = `<div class="stamp-banner brass"><div class="big">${L.readyTitle}</div><div class="small">${L.readyText}</div></div>`;
+    } else if(isBringing){
+      banner = `<div class="stamp-banner red"><div class="big">${L.deliverTitle}</div><div class="small">${L.deliverText}</div></div>`;
+    } else if(isDone){
+      banner = `<div class="stamp-banner brass"><div class="big">${L.doneTitle}</div><div class="small">${L.doneText}</div></div>`;
+    }
+
+    const messages = o.messages || [];
+    const msgThreadHtml = `
+      <div class="msg-thread">
+        <div class="msg-thread-title">Message the staff</div>
+        <div class="msg-list" id="msgList">
+          ${messages.length ? messages.map(m=>`
+            <div class="msg-bubble ${m.from}">
+              <div>${escapeHtml(m.text)}</div>
+              <div class="t">${m.from === "staff" ? "Staff" : "You"} · ${timeAgo(m.ts)}</div>
+            </div>
+          `).join("") : `<div class="msg-empty">Got a question about your order? Send us a note.</div>`}
+        </div>
+        <div class="msg-input-row">
+          <input type="text" id="custMsgInput" placeholder="e.g. how long will it be?" maxlength="200" value="${escapeHtml(state.msgDraft)}">
+          <button id="custMsgSend">Send</button>
+        </div>
+      </div>
+    `;
+
+    let bodyHtml;
+    if(state.editingTicket){
+      const editTotal = state.editItems.reduce((a,l)=>a+l.qty*l.price,0);
+      bodyHtml = `
+        <div class="ticket-body">
+          ${state.editItems.map((l,i)=>`
+            <div class="edit-line">
+              <span class="name">${l.name}</span>
+              <div class="edit-line-actions">
+                <div class="qty-control">
+                  <button data-edit-minus="${i}">−</button>
+                  <div class="n">${l.qty}</div>
+                  <button data-edit-plus="${i}">+</button>
+                </div>
+              </div>
+            </div>
+          `).join("")}
+          <div class="edit-total"><span>Total</span><span>${money(editTotal)}</span></div>
+          <div class="edit-ticket-actions">
+            <button class="btn-cancel-edit" id="cancelEdit">Cancel</button>
+            <button class="btn-save-edit" id="saveEdit">Save changes</button>
+          </div>
+        </div>
+      `;
+    } else {
+      bodyHtml = `
+        <div class="ticket-body">
+          ${o.items.map(l=>`<div class="ticket-line"><span><span class="q">${l.qty}×</span>${l.name}</span><span>${money(l.qty*l.price)}</span></div>`).join("")}
+          <div class="ticket-line" style="border-top:1px dashed var(--paper-border); margin-top:6px; padding-top:8px; font-weight:700;">
+            <span>Total</span><span>${money(o.items.reduce((a,l)=>a+l.qty*l.price,0))}</span>
+          </div>
+          ${o.notes ? `<div class="ticket-notes">"${escapeHtml(o.notes)}"</div>` : ""}
+          <div class="ticket-meta">Placed ${timeAgo(o.createdAt)}</div>
+
+          <div class="status-track">
+            <div class="status-step">
+              <div class="status-dot filled"></div>
+              <div class="status-label active">Received</div>
+            </div>
+            <div class="status-step">
+              <div class="status-line ${step2Filled?'filled':''}"></div>
+              <div class="status-dot ${step2Filled?'filled':''} ${step2Red?'red':''}"></div>
+              <div class="status-label ${step2Filled?'active':''}">${isBringing?L.deliverShort:L.readyShort}</div>
+            </div>
+          </div>
+          ${banner}
+          ${!isDone ? `
+            <div class="ticket-actions">
+              ${canEdit ? `<button class="btn-ticket-secondary" id="editOrder">Edit order</button>` : ""}
+              <button class="btn-ticket-secondary" id="addMore">Add more</button>
+            </div>
+          ` : ""}
+          ${msgThreadHtml}
+        </div>
+      `;
+    }
+
+    const switcherHtml = (state.myOrderIds.length > 1 && !state.editingTicket) ? `
+      <div class="order-switcher">
+        ${state.myOrderIds.map(id=>{
+          const cached = state.myOrdersCache[id];
+          const label = cached ? "#"+String(cached.ticketNumber).padStart(3,'0') : "…";
+          const isDoneCached = cached && cached.status === "completed";
+          return `<button class="switcher-pill ${id===o.id?'active':''} ${isDoneCached?'done':''}" data-switch-order="${id}">${label}</button>`;
+        }).join("")}
+      </div>
+    ` : "";
+
+    app.innerHTML = `
+      <div class="brand">${brandHtml()}</div>
+      ${switcherHtml}
+      <div class="ticket-wrap">
+        <div class="ticket">
+          <div class="ticket-head">
+            <div class="ttitle">${escapeHtml(o.table || "Table not set")}</div>
+            <div class="tnum">Order #${String(o.ticketNumber).padStart(3,'0')} <button class="change-table-link" id="changeTableTicket">change</button></div>
+          </div>
+          <div class="tear"></div>
+          ${bodyHtml}
+        </div>
+      </div>
+      ${!state.editingTicket ? `<button class="new-order-link" id="newOrder">Start a new order</button>` : ""}
+    `;
+
+    document.querySelectorAll("[data-switch-order]").forEach(btn=>{
+      btn.onclick = ()=>{
+        const id = btn.dataset.switchOrder;
+        if(id !== o.id) switchToOrder(id);
+      };
+    });
+
+    if(state.editingTicket){
+      app.querySelectorAll("[data-edit-plus]").forEach(btn=>{
+        btn.onclick = ()=>{ state.editItems[parseInt(btn.dataset.editPlus)].qty++; render(); };
+      });
+      app.querySelectorAll("[data-edit-minus]").forEach(btn=>{
+        btn.onclick = ()=>{
+          const i = parseInt(btn.dataset.editMinus);
+          state.editItems[i].qty--;
+          if(state.editItems[i].qty <= 0) state.editItems.splice(i,1);
+          render();
+        };
+      });
+      document.getElementById("cancelEdit").onclick = ()=>{
+        state.editingTicket = false;
+        state.editItems = null;
+        render();
+      };
+      document.getElementById("saveEdit").onclick = async ()=>{
+        if(state.editItems.length === 0){
+          showToast("An order needs at least one drink — ask at the bar to cancel it instead.");
+          return;
+        }
+        const saveBtn = document.getElementById("saveEdit");
+        saveBtn.disabled = true; saveBtn.textContent = "Saving…";
+        const ok = await updateOrder(o.id, { items: state.editItems });
+        if(!ok){
+          showToast("Couldn't save changes — try again.");
+          saveBtn.disabled = false; saveBtn.textContent = "Save changes";
+          return;
+        }
+        state.currentOrder = { ...o, items: state.editItems };
+        state.editingTicket = false;
+        state.editItems = null;
+        render();
+      };
+      return;
+    }
+
+    const editBtn = document.getElementById("editOrder");
+    if(editBtn) editBtn.onclick = ()=>{
+      state.editingTicket = true;
+      state.editItems = o.items.map(l=>({ ...l }));
+      render();
+    };
+    const changeTableTicketBtn = document.getElementById("changeTableTicket");
+    if(changeTableTicketBtn) changeTableTicketBtn.onclick = ()=>{
+      state.editingTableForOrderId = o.id;
+      state.screen = "table-select";
+      render();
+    };
+    const addMoreBtn = document.getElementById("addMore");
+    if(addMoreBtn) addMoreBtn.onclick = ()=>{
+      stopPolling();
+      state.appendOrderId = o.id;
+      state.appendTicketNumber = o.ticketNumber;
+      state.screen = "menu";
+      render();
+    };
+    document.getElementById("newOrder").onclick = ()=>{
+      stopPolling();
+      // Only stops viewing THIS ticket — it stays tracked in myOrderIds so
+      // it's still reachable from the order-switcher if it's not done yet.
+      state.currentOrderId = null;
+      state.currentOrder = null;
+      state.appendOrderId = null;
+      state.appendTicketNumber = null;
+      state.table = null; // a genuinely new order asks for the table fresh, not remembered
+      state.screen = "table-select";
+      render();
+    };
+
+    const msgList = document.getElementById("msgList");
+    if(msgList) msgList.scrollTop = msgList.scrollHeight;
+    const custMsgInput = document.getElementById("custMsgInput");
+    const custMsgSend = document.getElementById("custMsgSend");
+    if(custMsgInput) custMsgInput.oninput = (e)=>{ state.msgDraft = e.target.value; };
+    async function sendCustMsg(){
+      const text = custMsgInput.value.trim();
+      if(!text) return;
+      custMsgSend.disabled = true;
+      const messages = await sendOrderMessage(o.id, "customer", text);
+      custMsgSend.disabled = false;
+      if(!messages){ showToast("Couldn't send — try again."); return; }
+      state.currentOrder = { ...o, messages };
+      state.lastKnownMsgCount = messages.filter(m=>m.from==="staff").length;
+      state.msgDraft = "";
+      custMsgInput.value = "";
+      render();
+    }
+    if(custMsgSend) custMsgSend.onclick = sendCustMsg;
+    if(custMsgInput) custMsgInput.onkeydown = (e)=>{ if(e.key==="Enter") sendCustMsg(); };
+  }
+
+  function escapeHtml(s){
+    const d = document.createElement("div"); d.textContent = s; return d.innerHTML;
+  }
+
+  // Lets desktop users without a horizontal-scroll-capable mouse (i.e. no
+  // trackpad/shift-scroll) still browse the category tab strip: a plain
+  // vertical mouse-wheel scrolls it sideways, and click-and-drag pans it.
+  // Drag state lives at module scope and the window listeners are wired
+  // once (not per render) since #catTabs itself is recreated every render.
+  const catDrag = { active:false, startX:0, startScroll:0, dragged:false, el:null };
+  window.addEventListener("mouseup", ()=>{
+    catDrag.active = false;
+    if(catDrag.el) catDrag.el.style.cursor = "";
+  });
+  window.addEventListener("mousemove", (e)=>{
+    if(!catDrag.active || !catDrag.el) return;
+    const dx = e.pageX - catDrag.startX;
+    if(Math.abs(dx) > 4) catDrag.dragged = true;
+    catDrag.el.scrollLeft = catDrag.startScroll - dx;
+  });
+  function wireCatTabsScroll(el){
+    el.addEventListener("wheel", (e)=>{
+      if(e.deltaY === 0) return;
+      el.scrollLeft += e.deltaY;
+      e.preventDefault();
+    }, { passive:false });
+
+    el.addEventListener("mousedown", (e)=>{
+      catDrag.active = true; catDrag.dragged = false; catDrag.el = el;
+      catDrag.startX = e.pageX; catDrag.startScroll = el.scrollLeft;
+      el.style.cursor = "grabbing";
+    });
+    // Suppress the click that would otherwise fire on a tab button right
+    // after a drag, so dragging past a tab doesn't accidentally select it.
+    el.addEventListener("click", (e)=>{
+      if(catDrag.dragged){ e.stopPropagation(); e.preventDefault(); catDrag.dragged = false; }
+    }, true);
+  }
+
+  // ================================================================ MASTER
+  // Every screen fully rebuilds its HTML on each render() call — including
+  // the ~3s background poll that keeps tickets/messages live. Without this,
+  // typing into a text field (like the message box) would lose focus and
+  // get wiped every few seconds as the poll refreshes the screen. This
+  // remembers which input was focused (and where the cursor was) right
+  // before the rebuild, then restores both afterward.
+  function render(){
+    const active = document.activeElement;
+    let savedId = null, savedStart = null, savedEnd = null;
+    if(active && active.id && (active.tagName === "INPUT" || active.tagName === "TEXTAREA")){
+      savedId = active.id;
+      if(typeof active.selectionStart === "number"){
+        savedStart = active.selectionStart;
+        savedEnd = active.selectionEnd;
+      }
+    }
+
+    if(state.toast){
+      // toast rendered separately, doesn't replace screen
+    }
+    switch(state.screen){
+      case "table-select": renderTableSelect(); break;
+      case "menu": renderMenu(); break;
+      case "ticket": renderTicket(); break;
+    }
+    renderFab();
+    renderToast();
+
+    if(savedId){
+      const el = document.getElementById(savedId);
+      if(el){
+        el.focus();
+        if(savedStart !== null && typeof el.setSelectionRange === "function"){
+          try{ el.setSelectionRange(savedStart, savedEnd); }catch(e){ /* not a text-selectable input */ }
+        }
+      }
+    }
+  }
+
+  function renderFab(){
+    const old = document.getElementById("fabStaff");
+    if(old) old.remove();
+    // Navigates to the separate staff page (staff.html) rather than
+    // switching screens within this page — staff access lives on its
+    // own URL now, not as another state of the customer ordering page.
+    const fab = document.createElement("a");
+    fab.className = "fab-staff";
+    fab.id = "fabStaff";
+    fab.href = "staff.html";
+    fab.setAttribute("aria-label", "Staff");
+    fab.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>`;
+    document.body.appendChild(fab);
+  }
+
+  function renderToast(){
+    const old = document.getElementById("appToast");
+    if(old) old.remove();
+    if(!state.toast) return;
+    const t = document.createElement("div");
+    t.className = "toast"; t.id = "appToast"; t.textContent = state.toast;
+    document.body.appendChild(t);
+  }
+
+  // ================================================================= BOOT
+  // On load: fetch the menu, then check if this device already has an
+  // open ticket saved (survives page refresh / tab close) and jump
+  // straight back to it instead of losing track of the order.
+  async function boot(){
+    app.innerHTML = `<div class="empty-state">Loading menu…</div>`;
+    try{
+      await ensureSignedIn();
+    }catch(e){
+      console.error("Anonymous sign-in failed", e);
+      app.innerHTML = `<div class="empty-state">Couldn't connect right now.<br>Please try again in a moment.</div>`;
+      return;
+    }
+    state.menu = await ensureMenu();
+    state.tables = await ensureTables();
+    state.promotions = await ensurePromotions();
+
+    state.myOrderIds = loadMyOrderIds();
+    if(state.myOrderIds.length){
+      await refreshMyOrdersCache(); // also prunes any ids that no longer resolve to a real order
+    }
+    if(state.myOrderIds.length){
+      const resumeId = state.myOrderIds[state.myOrderIds.length - 1];
+      const order = state.myOrdersCache[resumeId];
+      if(order){
+        state.currentOrderId = resumeId;
+        state.currentOrder = order;
+        state.lastKnownStatus = order.status;
+        state.lastKnownMsgCount = (order.messages || []).filter(m=>m.from==="staff").length;
+        state.screen = "ticket";
+        render();
+        if(order.status !== "completed") startPolling(pollCurrentOrder);
+        return;
+      }
+    }
+
+    state.screen = "table-select";
+    render();
+  }
+
+  boot();
+</script>
+</body>
+</html>

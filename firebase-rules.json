@@ -1,0 +1,134 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "config": {
+      "staffPin": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        ".validate": "newData.isString() && newData.val().length >= 4 && newData.val().length <= 20"
+      }
+    },
+    "menu": {
+      ".read": true,
+      ".write": "auth != null",
+      ".validate": "newData.hasChildren()"
+    },
+    "tables": {
+      ".read": true,
+      ".write": "auth != null",
+      ".validate": "newData.hasChildren()"
+    },
+    "ticket-counter": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      ".validate": "newData.isNumber() && newData.val() >= 0"
+    },
+    "notes": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$noteIndex": {
+        ".validate": "newData.hasChildren(['id','text','done','createdAt'])",
+        "id": {
+          ".validate": "newData.isString()"
+        },
+        "text": {
+          ".validate": "newData.isString() && newData.val().length <= 300"
+        },
+        "done": {
+          ".validate": "newData.isBoolean()"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "orders": {
+      ".read": "auth != null",
+      "$orderId": {
+        ".write": "auth != null",
+        ".validate": "newData.hasChildren(['id','ticketNumber','items','status','createdAt'])",
+        "id": {
+          ".validate": "newData.isString() && newData.val() == $orderId"
+        },
+        "ticketNumber": {
+          ".validate": "newData.isNumber()"
+        },
+        "table": {
+          ".validate": "newData.isString() && newData.val().length <= 60"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "notes": {
+          ".validate": "newData.isString() && newData.val().length <= 500"
+        },
+        "status": {
+          ".validate": "newData.val() == 'received' || newData.val() == 'ready_collect' || newData.val() == 'bringing_up' || newData.val() == 'completed'"
+        },
+        "receivedAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "ready_collectAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "bringing_upAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "completedAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "items": {
+          "$itemIndex": {
+            ".validate": "newData.hasChildren(['name','qty','price'])",
+            "name": {
+              ".validate": "newData.isString() && newData.val().length <= 100"
+            },
+            "qty": {
+              ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= 50"
+            },
+            "price": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 500"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "messages": {
+          "$msgIndex": {
+            ".validate": "newData.hasChildren(['from','text','ts'])",
+            "from": {
+              ".validate": "newData.isString() && (newData.val() == 'customer' || newData.val() == 'staff')"
+            },
+            "text": {
+              ".validate": "newData.isString() && newData.val().length <= 200"
+            },
+            "ts": {
+              ".validate": "newData.isNumber()"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "archive": {
+      ".read": "auth != null",
+      "$orderId": {
+        ".write": "auth != null"
+      }
+    },
+    "promotions": {
+      ".read": true,
+      ".write": "auth != null"
+    }
+  }
+}
