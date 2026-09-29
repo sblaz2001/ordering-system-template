@@ -1,0 +1,4 @@
+# Local AI tooling (installed via npx skills) - not part of the template
+.agents/
+.claude/
+skills-lock.json
