@@ -567,12 +567,17 @@
 <div id="app"></div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-import { getDatabase, ref, get, set, update, remove } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 
 const BAR = window.BAR_CONFIG;
 const firebaseConfig = BAR.firebase;
+// demo: true in config.js swaps Firebase for a browser-only store (demo-db.js).
+const FB = BAR.demo
+  ? await import("./demo-db.js")
+  : Object.assign({},
+      await import("https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js"),
+      await import("https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js"),
+      await import("https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js"));
+const { initializeApp, getDatabase, ref, get, set, update, remove, getAuth, signInAnonymously, onAuthStateChanged } = FB;
 const fbApp = initializeApp(firebaseConfig);
 const db = getDatabase(fbApp);
 const auth = getAuth(fbApp);

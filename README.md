@@ -13,6 +13,14 @@ No build step: plain HTML + a `config.js` file + a free Firebase Realtime Databa
 | `config.js` | **Everything venue-specific — the only file you edit** |
 | `firebase-rules.json` | Database security rules to paste into Firebase |
 
+## Try it without Firebase (demo mode)
+`config.js` ships with `demo: true`. Open `index.html` and `staff.html` (PIN `1234`)
+and everything works, with data stored in the browser only. Place an order on the
+customer page, then see it on the staff page **in the same browser**. Orders don't
+sync between different phones in this mode. The "Demo mode · reset" button (bottom
+left) wipes it. This is what you host on GitHub Pages to show the template.
+For real use set `demo: false` and complete the Firebase steps below.
+
 ## Set up a new venue (about 15 minutes)
 
 ### 1. Create the Firebase project

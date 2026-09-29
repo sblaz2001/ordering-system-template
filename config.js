@@ -7,6 +7,13 @@
    ========================================================================== */
 window.BAR_CONFIG = {
 
+  /* ---- 0. Demo mode ----------------------------------------------------- */
+  // true  = no Firebase needed; data is kept in the browser only (great for
+  //         showing the template, e.g. on GitHub Pages). Orders do NOT sync
+  //         between different phones.
+  // false = real use: fill in the Firebase section below.
+  demo: true,
+
   /* ---- 1. Your venue ---------------------------------------------------- */
   name: "Your Bar Name",
   tagline: "Choose your drinks, send your order, and we'll bring it over.",
